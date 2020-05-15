@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -22,9 +23,9 @@ type FriendResponse struct {
 }
 
 func main() {
-	err := godotenv.Load(".env")
+	err := godotenv.Load(filepath.Join("./", ".env"))
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error loading .env file: ", err.Error())
 	}
 
 	arguments := os.Args[1:]
@@ -50,7 +51,6 @@ func getResponses() []FriendResponse {
 	response, err := http.Get("https://restapi.surveygizmo.com/v5/survey/" + surveyId +
 		"/surveyresponse?api_token=" + apiToken +
 		"&api_token_secret=" + apiSecret)
-
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -58,6 +58,9 @@ func getResponses() []FriendResponse {
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	json.Unmarshal([]byte(body), &result)
 
 	responseData := result["data"].([]interface{})
@@ -98,14 +101,13 @@ func getMessage() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	jsonFile, err := os.Open(os.Getenv("JSON_PATH"))
-	defer jsonFile.Close()
-
 	if err != nil {
-		log.Fatal("Failed to open JSON file")
+		log.Fatal("Failed to open JSON file: ", err.Error())
 	}
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	defer jsonFile.Close()
 
+	byteValue, _ := ioutil.ReadAll(jsonFile)
 	json.Unmarshal(byteValue, &messages)
 
 	message := messages[rand.Intn(len(messages))]
